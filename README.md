@@ -32,6 +32,37 @@ This is a simplified multi-currency E-Wallet backend system implemented in Go us
 5. **Atomicity**: Multi-wallet operations (like transfers) are executed within a single SQL transaction. If any part of the operation fails, all changes are rolled back.
 6. **Rounding Logic**: All amounts are automatically rounded to 2 decimal places (e.g., `12.3456` becomes `12.35`).
 
+## Document your assumptions
+
+Below are the core technical and business assumptions made during the development of this E-Wallet system:
+
+1.  **Financial Precision & Integrity**:
+    - All monetary values are handled using fixed-precision arithmetic (via `shopspring/decimal`).
+    - We assume a standard **2-decimal place precision** for all currencies supported in this version.
+    - The system assumes that any rounding required (e.g., from complex calculations) should follow the "Half Up" rule to 2 decimal places.
+
+2.  **Concurrency & Race Conditions**:
+    - We assume row-level **Pessimistic Locking** (`SELECT ... FOR UPDATE`) is the most reliable way to prevent "Double Spending" at the current scale.
+    - We assume that the database connection pool is configured to handle the expected peak concurrent transaction volume.
+
+3.  **Idempotency Responsibility**:
+    - The system assumes **clients are responsible** for generating and storing unique `idempotency_key` (UUID v4) for every balance-altering request.
+    - We assume a retention period for idempotency keys is handled at the database level (currently persisted indefinitely in the `ledger` table).
+
+4.  **Trust & Security**:
+    - We assume the application runs in a **trusted internal network** or behind an API Gateway/Load Balancer that handles SSL termination and Basic/token-based Authentication.
+    - Authorization (e.g., "does User A own Wallet B?") is enforced at the service layer, assuming the `UserID` provided by the request context is authentic.
+
+5.  **Transaction Scope**:
+    - The system assumes all ledger entries and balance updates for a single operation must happen within a **single ACID transaction**.
+    - For transfers, we assume both wallets exist within the same database instance; distributed transactions (Sagas/2PC) are not implemented.
+
+6.  **Currency Constraints**:
+    - We assume **transfers can only occur between wallets of the same currency**. Real-time FX conversion is currently out of scope.
+
+7.  **Time Sensitivity**:
+    - The system assumes the **Database Server Clock** is the authoritative source for all transaction timestamps (`created_at`).
+
 ## How to Run
 
 ### 1. Prerequisites
@@ -158,9 +189,12 @@ All API responses follow a consistent structure to ensure ease of integration.
       "current": "http://localhost:8080/api/v1/wallets/.../transactions?page=1&per_page=10",
       "first": "http://localhost:8080/api/v1/wallets/.../transactions?page=1&per_page=10",
       "last": "http://localhost:8080/api/v1/wallets/.../transactions?page=10&per_page=10",
-      "prev": "http://localhost:8080/api/v1/wallets/.../transactions?page=0&per_page=10",
       "next": "http://localhost:8080/api/v1/wallets/.../transactions?page=2&per_page=10"
     }
+  },
+  "summary": {
+    "total_credit": "50000.00",
+    "total_debit": "-15000.00"
   }
 }
 ```
@@ -187,8 +221,8 @@ All API responses follow a consistent structure to ensure ease of integration.
 - `POST /api/v1/wallets`: Create a wallet for a user.
   - Body: `{"user_id": "<uuid>", "currency": "USD"}`
 - `GET /api/v1/wallets/:id`: Get wallet balance and status.
-- `GET /api/v1/wallets/:id/transactions`: Get wallet transaction history (paginated).
-  - Query params: `page` (default: 1), `per_page` (default: 10)
+- `GET /api/v1/wallets/:id/transactions`: Get wallet transaction history (paginated & filtered).
+  - Query params: `page` (default: 1), `per_page` (default: 10), `type` (optional filter: `TOPUP`, `PAYMENT`, `TRANSFER_IN`, `TRANSFER_OUT`)
 - `POST /api/v1/wallets/:id/topup`: Top-up money.
   - Body: `{"amount": 1000.50, "idempotency_key": "unique-uuid-1"}`
 - `POST /api/v1/wallets/:id/pay`: Spend money.

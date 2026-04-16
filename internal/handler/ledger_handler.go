@@ -28,6 +28,7 @@ func NewLedgerHandler(s *service.LedgerService) *LedgerHandler {
 // @Param id path string true "Wallet UUID"
 // @Param page query int false "Page number" default(1)
 // @Param per_page query int false "Items per page" default(10)
+// @Param type query string false "Transaction type filter (TOPUP, PAYMENT, TRANSFER_IN, TRANSFER_OUT)"
 // @Success 200 {object} util.APIResponse{data=[]models.LedgerEntry,meta=util.PaginationMeta} "Transaction history retrieved successfully"
 // @Failure 400 {object} util.APIResponse "Invalid wallet ID"
 // @Failure 500 {object} util.APIResponse "Internal server error"
@@ -42,6 +43,7 @@ func (h *LedgerHandler) GetHistory(c *gin.Context) {
 
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "10"))
+	txType := c.Query("type")
 
 	if page < 1 {
 		page = 1
@@ -50,7 +52,7 @@ func (h *LedgerHandler) GetHistory(c *gin.Context) {
 		perPage = 10
 	}
 
-	history, meta, err := h.ledgerService.GetHistory(c.Request.Context(), walletID, page, perPage)
+	history, meta, summary, err := h.ledgerService.GetHistory(c.Request.Context(), walletID, txType, page, perPage)
 	if err != nil {
 		util.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch history", err.Error())
 		return
@@ -58,5 +60,5 @@ func (h *LedgerHandler) GetHistory(c *gin.Context) {
 
 	meta.GenerateLinks(c)
 
-	util.SuccessResponseWithPagination(c, http.StatusOK, history, *meta, "Transaction history retrieved successfully")
+	util.SuccessResponseWithPagination(c, http.StatusOK, history, *meta, summary, "Transaction history retrieved successfully")
 }

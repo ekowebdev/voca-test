@@ -13,8 +13,9 @@ import (
 // LedgerRepository handles ledger data operations
 type LedgerRepository interface {
 	CreateLedgerEntry(ctx context.Context, tx pgx.Tx, entry *models.LedgerEntry) error
-	GetLedgerByWalletID(ctx context.Context, walletID uuid.UUID, limit, offset int) ([]models.LedgerEntry, error)
-	CountLedgerByWalletID(ctx context.Context, walletID uuid.UUID) (int64, error)
+	GetLedgerByWalletID(ctx context.Context, walletID uuid.UUID, txType string, limit, offset int) ([]models.LedgerEntry, error)
+	CountLedgerByWalletID(ctx context.Context, walletID uuid.UUID, txType string) (int64, error)
+	GetLedgerSummary(ctx context.Context, walletID uuid.UUID, txType string) (map[string]interface{}, error)
 }
 
 type ledgerRepo struct {
@@ -35,13 +36,23 @@ func (r *ledgerRepo) CreateLedgerEntry(ctx context.Context, tx pgx.Tx, entry *mo
 	return nil
 }
 
-func (r *ledgerRepo) GetLedgerByWalletID(ctx context.Context, walletID uuid.UUID, limit, offset int) ([]models.LedgerEntry, error) {
+func (r *ledgerRepo) GetLedgerByWalletID(ctx context.Context, walletID uuid.UUID, txType string, limit, offset int) ([]models.LedgerEntry, error) {
 	query := `SELECT id, wallet_id, amount, type, balance_after, reference_id, description, created_at 
               FROM ledger 
-              WHERE wallet_id = $1 
-              ORDER BY created_at DESC 
-              LIMIT $2 OFFSET $3`
-	rows, err := r.db.Query(ctx, query, walletID, limit, offset)
+              WHERE wallet_id = $1`
+
+	args := []interface{}{walletID}
+	nextArg := 2
+	if txType != "" {
+		query += fmt.Sprintf(" AND type = $%d", nextArg)
+		args = append(args, txType)
+		nextArg++
+	}
+
+	query += fmt.Sprintf(" ORDER BY created_at DESC LIMIT $%d OFFSET $%d", nextArg, nextArg+1)
+	args = append(args, limit, offset)
+
+	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching ledger history: %w", err)
 	}
@@ -59,12 +70,44 @@ func (r *ledgerRepo) GetLedgerByWalletID(ctx context.Context, walletID uuid.UUID
 	return entries, nil
 }
 
-func (r *ledgerRepo) CountLedgerByWalletID(ctx context.Context, walletID uuid.UUID) (int64, error) {
+func (r *ledgerRepo) CountLedgerByWalletID(ctx context.Context, walletID uuid.UUID, txType string) (int64, error) {
 	var count int64
 	query := `SELECT COUNT(*) FROM ledger WHERE wallet_id = $1`
-	err := r.db.QueryRow(ctx, query, walletID).Scan(&count)
+
+	args := []interface{}{walletID}
+	if txType != "" {
+		query += " AND type = $2"
+		args = append(args, txType)
+	}
+
+	err := r.db.QueryRow(ctx, query, args...).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("error counting ledger entries: %w", err)
 	}
 	return count, nil
+}
+
+func (r *ledgerRepo) GetLedgerSummary(ctx context.Context, walletID uuid.UUID, txType string) (map[string]interface{}, error) {
+	query := `SELECT 
+                COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) as total_credit,
+                COALESCE(SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END), 0) as total_debit
+              FROM ledger 
+              WHERE wallet_id = $1`
+
+	args := []interface{}{walletID}
+	if txType != "" {
+		query += " AND type = $2"
+		args = append(args, txType)
+	}
+
+	var totalCredit, totalDebit interface{}
+	err := r.db.QueryRow(ctx, query, args...).Scan(&totalCredit, &totalDebit)
+	if err != nil {
+		return nil, fmt.Errorf("error getting ledger summary: %w", err)
+	}
+
+	return map[string]interface{}{
+		"total_credit": totalCredit,
+		"total_debit":  totalDebit,
+	}, nil
 }

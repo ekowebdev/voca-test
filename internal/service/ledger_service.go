@@ -23,22 +23,22 @@ func NewLedgerService(walletRepo repository.WalletRepository, ledgerRepo reposit
 	}
 }
 
-func (s *LedgerService) GetHistory(ctx context.Context, walletID uuid.UUID, page, perPage int) ([]models.LedgerEntry, *util.PaginationMeta, error) {
+func (s *LedgerService) GetHistory(ctx context.Context, walletID uuid.UUID, txType string, page, perPage int) ([]models.LedgerEntry, *util.PaginationMeta, map[string]interface{}, error) {
 	// Check if wallet exists first
 	_, err := s.walletRepo.GetWalletByID(ctx, walletID)
 	if err != nil {
-		return nil, nil, fmt.Errorf("wallet not found: %w", err)
+		return nil, nil, nil, fmt.Errorf("wallet not found: %w", err)
 	}
 
-	totalItems, err := s.ledgerRepo.CountLedgerByWalletID(ctx, walletID)
+	totalItems, err := s.ledgerRepo.CountLedgerByWalletID(ctx, walletID, txType)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to count history: %w", err)
+		return nil, nil, nil, fmt.Errorf("failed to count history: %w", err)
 	}
 
 	offset := (page - 1) * perPage
-	history, err := s.ledgerRepo.GetLedgerByWalletID(ctx, walletID, perPage, offset)
+	history, err := s.ledgerRepo.GetLedgerByWalletID(ctx, walletID, txType, perPage, offset)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to fetch history: %w", err)
+		return nil, nil, nil, fmt.Errorf("failed to fetch history: %w", err)
 	}
 
 	totalPages := int(math.Ceil(float64(totalItems) / float64(perPage)))
@@ -50,5 +50,10 @@ func (s *LedgerService) GetHistory(ctx context.Context, walletID uuid.UUID, page
 		TotalPages:  totalPages,
 	}
 
-	return history, meta, nil
+	summary, err := s.ledgerRepo.GetLedgerSummary(ctx, walletID, txType)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to fetch summary: %w", err)
+	}
+
+	return history, meta, summary, nil
 }

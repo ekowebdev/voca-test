@@ -450,6 +450,12 @@ const docTemplate = `{
                         "description": "Items per page",
                         "name": "per_page",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Transaction type filter (TOPUP, PAYMENT, TRANSFER_IN, TRANSFER_OUT)",
+                        "name": "type",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -674,6 +680,9 @@ const docTemplate = `{
                 "status": {
                     "description": "\"success\" or \"error\"",
                     "type": "string"
+                },
+                "summary": {
+                    "description": "Aggregated summary data"
                 }
             }
         },

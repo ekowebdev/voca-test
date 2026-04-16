@@ -46,6 +46,7 @@ func TestLedgerHistory(t *testing.T) {
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		data := resp["data"].([]interface{})
 		meta := resp["meta"].(map[string]interface{})
+		summary := resp["summary"].(map[string]interface{})
 
 		if len(data) != 2 {
 			t.Errorf("Expected 2 transactions, got %d", len(data))
@@ -53,6 +54,10 @@ func TestLedgerHistory(t *testing.T) {
 
 		if meta["total_items"].(float64) != 2 {
 			t.Errorf("Expected total_items 2, got %v", meta["total_items"])
+		}
+
+		if summary["total_credit"] == nil || summary["total_debit"] == nil {
+			t.Errorf("Expected summary to have total_credit and total_debit")
 		}
 
 		// Verify links
@@ -73,6 +78,43 @@ func TestLedgerHistory(t *testing.T) {
 		wantAmount := decimal.NewFromFloat(-15000)
 		if !gotAmount.Equal(wantAmount) {
 			t.Errorf("Expected first amount %s, got %s", wantAmount, gotAmount)
+		}
+	})
+
+	t.Run("Get Transaction History with Type Filter and Summary", func(t *testing.T) {
+		// Filter by TOPUP
+		w := PerformRequest("GET", fmt.Sprintf("/api/v1/wallets/%s/transactions?type=TOPUP", walletID), "")
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("Expected status 200, got %d", w.Code)
+		}
+
+		var resp map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		data := resp["data"].([]interface{})
+		summary := resp["summary"].(map[string]interface{})
+
+		if len(data) != 1 {
+			t.Errorf("Expected 1 transaction (TOPUP), got %d", len(data))
+		}
+
+		if data[0].(map[string]interface{})["type"] != "TOPUP" {
+			t.Errorf("Expected transaction to be TOPUP, got %v", data[0].(map[string]interface{})["type"])
+		}
+
+		// Verify summary for TOPUP only
+		// Convert to string first as decimal might be numerics or string in map
+		creditStr := fmt.Sprintf("%v", summary["total_credit"])
+		debitStr := fmt.Sprintf("%v", summary["total_debit"])
+		
+		gotCredit, _ := decimal.NewFromString(creditStr)
+		gotDebit, _ := decimal.NewFromString(debitStr)
+		
+		if !gotCredit.Equal(decimal.NewFromInt(50000)) {
+			t.Errorf("Expected total_credit 50000, got %s", gotCredit)
+		}
+		if !gotDebit.IsZero() {
+			t.Errorf("Expected total_debit 0 for TOPUP filter, got %s", gotDebit)
 		}
 	})
 

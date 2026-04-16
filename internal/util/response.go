@@ -67,6 +67,7 @@ type APIResponse struct {
 	Message string          `json:"message,omitempty"` // General message
 	Data    interface{}     `json:"data,omitempty"`    // Actual payload for success
 	Meta    *PaginationMeta `json:"meta,omitempty"`    // Pagination metadata
+	Summary interface{}     `json:"summary,omitempty"` // Aggregated summary data
 	Errors  interface{}     `json:"errors,omitempty"`  // Specific error details (e.g., validation)
 }
 
@@ -79,13 +80,14 @@ func SuccessResponse(c *gin.Context, statusCode int, data interface{}, message s
 	})
 }
 
-// SuccessResponseWithPagination sends a success response with pagination metadata
-func SuccessResponseWithPagination(c *gin.Context, statusCode int, data interface{}, meta PaginationMeta, message string) {
+// SuccessResponseWithPagination sends a success response with pagination metadata and optional summary
+func SuccessResponseWithPagination(c *gin.Context, statusCode int, data interface{}, meta PaginationMeta, summary interface{}, message string) {
 	c.JSON(statusCode, APIResponse{
 		Status:  "success",
 		Message: message,
 		Data:    data,
 		Meta:    &meta,
+		Summary: summary,
 	})
 }
 
