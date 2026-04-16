@@ -32,7 +32,7 @@ This is a simplified multi-currency E-Wallet backend system implemented in Go us
 5. **Atomicity**: Multi-wallet operations (like transfers) are executed within a single SQL transaction. If any part of the operation fails, all changes are rolled back.
 6. **Rounding Logic**: All amounts are automatically rounded to 2 decimal places (e.g., `12.3456` becomes `12.35`).
 
-## Document your assumptions
+## My assumptions
 
 Below are the core technical and business assumptions made during the development of this E-Wallet system:
 
