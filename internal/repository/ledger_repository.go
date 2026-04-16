@@ -13,7 +13,8 @@ import (
 // LedgerRepository handles ledger data operations
 type LedgerRepository interface {
 	CreateLedgerEntry(ctx context.Context, tx pgx.Tx, entry *models.LedgerEntry) error
-	GetLedgerByWalletID(ctx context.Context, walletID uuid.UUID) ([]models.LedgerEntry, error)
+	GetLedgerByWalletID(ctx context.Context, walletID uuid.UUID, limit, offset int) ([]models.LedgerEntry, error)
+	CountLedgerByWalletID(ctx context.Context, walletID uuid.UUID) (int64, error)
 }
 
 type ledgerRepo struct {
@@ -34,12 +35,13 @@ func (r *ledgerRepo) CreateLedgerEntry(ctx context.Context, tx pgx.Tx, entry *mo
 	return nil
 }
 
-func (r *ledgerRepo) GetLedgerByWalletID(ctx context.Context, walletID uuid.UUID) ([]models.LedgerEntry, error) {
+func (r *ledgerRepo) GetLedgerByWalletID(ctx context.Context, walletID uuid.UUID, limit, offset int) ([]models.LedgerEntry, error) {
 	query := `SELECT id, wallet_id, amount, type, balance_after, reference_id, description, created_at 
               FROM ledger 
               WHERE wallet_id = $1 
-              ORDER BY created_at DESC`
-	rows, err := r.db.Query(ctx, query, walletID)
+              ORDER BY created_at DESC 
+              LIMIT $2 OFFSET $3`
+	rows, err := r.db.Query(ctx, query, walletID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching ledger history: %w", err)
 	}
@@ -55,4 +57,14 @@ func (r *ledgerRepo) GetLedgerByWalletID(ctx context.Context, walletID uuid.UUID
 		entries = append(entries, entry)
 	}
 	return entries, nil
+}
+
+func (r *ledgerRepo) CountLedgerByWalletID(ctx context.Context, walletID uuid.UUID) (int64, error) {
+	var count int64
+	query := `SELECT COUNT(*) FROM ledger WHERE wallet_id = $1`
+	err := r.db.QueryRow(ctx, query, walletID).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("error counting ledger entries: %w", err)
+	}
+	return count, nil
 }

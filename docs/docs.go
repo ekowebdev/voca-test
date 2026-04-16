@@ -38,7 +38,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/voca-test_internal_models.UserCreateRequest"
+                            "$ref": "#/definitions/models.UserCreateRequest"
                         }
                     }
                 ],
@@ -48,13 +48,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/voca-test_internal_util.APIResponse"
+                                    "$ref": "#/definitions/util.APIResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/voca-test_internal_models.User"
+                                            "$ref": "#/definitions/models.User"
                                         }
                                     }
                                 }
@@ -64,13 +64,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request body or validation error",
                         "schema": {
-                            "$ref": "#/definitions/voca-test_internal_util.APIResponse"
+                            "$ref": "#/definitions/util.APIResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/voca-test_internal_util.APIResponse"
+                            "$ref": "#/definitions/util.APIResponse"
                         }
                     }
                 }
@@ -96,7 +96,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/voca-test_internal_models.WalletCreateRequest"
+                            "$ref": "#/definitions/models.WalletCreateRequest"
                         }
                     }
                 ],
@@ -106,13 +106,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/voca-test_internal_util.APIResponse"
+                                    "$ref": "#/definitions/util.APIResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/voca-test_internal_models.Wallet"
+                                            "$ref": "#/definitions/models.Wallet"
                                         }
                                     }
                                 }
@@ -122,13 +122,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request body or validation error",
                         "schema": {
-                            "$ref": "#/definitions/voca-test_internal_util.APIResponse"
+                            "$ref": "#/definitions/util.APIResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/voca-test_internal_util.APIResponse"
+                            "$ref": "#/definitions/util.APIResponse"
                         }
                     }
                 }
@@ -154,7 +154,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/voca-test_internal_models.TransferRequest"
+                            "$ref": "#/definitions/models.TransferRequest"
                         }
                     }
                 ],
@@ -162,19 +162,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Transfer successful",
                         "schema": {
-                            "$ref": "#/definitions/voca-test_internal_util.APIResponse"
+                            "$ref": "#/definitions/util.APIResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid request, currency mismatch, or insufficient balance",
                         "schema": {
-                            "$ref": "#/definitions/voca-test_internal_util.APIResponse"
+                            "$ref": "#/definitions/util.APIResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/voca-test_internal_util.APIResponse"
+                            "$ref": "#/definitions/util.APIResponse"
                         }
                     }
                 }
@@ -208,13 +208,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/voca-test_internal_util.APIResponse"
+                                    "$ref": "#/definitions/util.APIResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/voca-test_internal_models.Wallet"
+                                            "$ref": "#/definitions/models.Wallet"
                                         }
                                     }
                                 }
@@ -224,19 +224,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid wallet ID",
                         "schema": {
-                            "$ref": "#/definitions/voca-test_internal_util.APIResponse"
+                            "$ref": "#/definitions/util.APIResponse"
                         }
                     },
                     "404": {
                         "description": "Wallet not found",
                         "schema": {
-                            "$ref": "#/definitions/voca-test_internal_util.APIResponse"
+                            "$ref": "#/definitions/util.APIResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/voca-test_internal_util.APIResponse"
+                            "$ref": "#/definitions/util.APIResponse"
                         }
                     }
                 }
@@ -269,7 +269,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/voca-test_internal_models.PaymentRequest"
+                            "$ref": "#/definitions/models.PaymentRequest"
                         }
                     }
                 ],
@@ -279,13 +279,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/voca-test_internal_util.APIResponse"
+                                    "$ref": "#/definitions/util.APIResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/voca-test_internal_models.Wallet"
+                                            "$ref": "#/definitions/models.Wallet"
                                         }
                                     }
                                 }
@@ -295,13 +295,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request body, insufficient balance, or wallet ID",
                         "schema": {
-                            "$ref": "#/definitions/voca-test_internal_util.APIResponse"
+                            "$ref": "#/definitions/util.APIResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/voca-test_internal_util.APIResponse"
+                            "$ref": "#/definitions/util.APIResponse"
                         }
                     }
                 }
@@ -333,19 +333,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Wallet suspended successfully",
                         "schema": {
-                            "$ref": "#/definitions/voca-test_internal_util.APIResponse"
+                            "$ref": "#/definitions/util.APIResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid wallet ID",
                         "schema": {
-                            "$ref": "#/definitions/voca-test_internal_util.APIResponse"
+                            "$ref": "#/definitions/util.APIResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/voca-test_internal_util.APIResponse"
+                            "$ref": "#/definitions/util.APIResponse"
                         }
                     }
                 }
@@ -378,7 +378,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/voca-test_internal_models.TopUpRequest"
+                            "$ref": "#/definitions/models.TopUpRequest"
                         }
                     }
                 ],
@@ -388,13 +388,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/voca-test_internal_util.APIResponse"
+                                    "$ref": "#/definitions/util.APIResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/voca-test_internal_models.Wallet"
+                                            "$ref": "#/definitions/models.Wallet"
                                         }
                                     }
                                 }
@@ -404,13 +404,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request body or wallet ID",
                         "schema": {
-                            "$ref": "#/definitions/voca-test_internal_util.APIResponse"
+                            "$ref": "#/definitions/util.APIResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/voca-test_internal_util.APIResponse"
+                            "$ref": "#/definitions/util.APIResponse"
                         }
                     }
                 }
@@ -436,6 +436,20 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Items per page",
+                        "name": "per_page",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -444,7 +458,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/voca-test_internal_util.APIResponse"
+                                    "$ref": "#/definitions/util.APIResponse"
                                 },
                                 {
                                     "type": "object",
@@ -452,8 +466,11 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/voca-test_internal_models.LedgerEntry"
+                                                "$ref": "#/definitions/models.LedgerEntry"
                                             }
+                                        },
+                                        "meta": {
+                                            "$ref": "#/definitions/util.PaginationMeta"
                                         }
                                     }
                                 }
@@ -463,13 +480,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid wallet ID",
                         "schema": {
-                            "$ref": "#/definitions/voca-test_internal_util.APIResponse"
+                            "$ref": "#/definitions/util.APIResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/voca-test_internal_util.APIResponse"
+                            "$ref": "#/definitions/util.APIResponse"
                         }
                     }
                 }
@@ -477,7 +494,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "voca-test_internal_models.LedgerEntry": {
+        "models.LedgerEntry": {
             "type": "object",
             "properties": {
                 "amount": {
@@ -507,7 +524,7 @@ const docTemplate = `{
                 }
             }
         },
-        "voca-test_internal_models.PaymentRequest": {
+        "models.PaymentRequest": {
             "type": "object",
             "required": [
                 "amount",
@@ -522,7 +539,7 @@ const docTemplate = `{
                 }
             }
         },
-        "voca-test_internal_models.TopUpRequest": {
+        "models.TopUpRequest": {
             "type": "object",
             "required": [
                 "amount",
@@ -537,7 +554,7 @@ const docTemplate = `{
                 }
             }
         },
-        "voca-test_internal_models.TransferRequest": {
+        "models.TransferRequest": {
             "type": "object",
             "required": [
                 "amount",
@@ -560,7 +577,7 @@ const docTemplate = `{
                 }
             }
         },
-        "voca-test_internal_models.User": {
+        "models.User": {
             "type": "object",
             "required": [
                 "name"
@@ -577,7 +594,7 @@ const docTemplate = `{
                 }
             }
         },
-        "voca-test_internal_models.UserCreateRequest": {
+        "models.UserCreateRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -588,7 +605,7 @@ const docTemplate = `{
                 }
             }
         },
-        "voca-test_internal_models.Wallet": {
+        "models.Wallet": {
             "type": "object",
             "required": [
                 "currency"
@@ -618,7 +635,7 @@ const docTemplate = `{
                 }
             }
         },
-        "voca-test_internal_models.WalletCreateRequest": {
+        "models.WalletCreateRequest": {
             "type": "object",
             "required": [
                 "currency",
@@ -633,7 +650,7 @@ const docTemplate = `{
                 }
             }
         },
-        "voca-test_internal_util.APIResponse": {
+        "util.APIResponse": {
             "type": "object",
             "properties": {
                 "data": {
@@ -646,9 +663,57 @@ const docTemplate = `{
                     "description": "General message",
                     "type": "string"
                 },
+                "meta": {
+                    "description": "Pagination metadata",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/util.PaginationMeta"
+                        }
+                    ]
+                },
                 "status": {
                     "description": "\"success\" or \"error\"",
                     "type": "string"
+                }
+            }
+        },
+        "util.PaginationLinks": {
+            "type": "object",
+            "properties": {
+                "current": {
+                    "type": "string"
+                },
+                "first": {
+                    "type": "string"
+                },
+                "last": {
+                    "type": "string"
+                },
+                "next": {
+                    "type": "string"
+                },
+                "prev": {
+                    "type": "string"
+                }
+            }
+        },
+        "util.PaginationMeta": {
+            "type": "object",
+            "properties": {
+                "current_page": {
+                    "type": "integer"
+                },
+                "links": {
+                    "$ref": "#/definitions/util.PaginationLinks"
+                },
+                "per_page": {
+                    "type": "integer"
+                },
+                "total_items": {
+                    "type": "integer"
+                },
+                "total_pages": {
+                    "type": "integer"
                 }
             }
         }

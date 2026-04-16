@@ -45,9 +45,20 @@ func TestLedgerHistory(t *testing.T) {
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		data := resp["data"].([]interface{})
+		meta := resp["meta"].(map[string]interface{})
 
 		if len(data) != 2 {
 			t.Errorf("Expected 2 transactions, got %d", len(data))
+		}
+
+		if meta["total_items"].(float64) != 2 {
+			t.Errorf("Expected total_items 2, got %v", meta["total_items"])
+		}
+
+		// Verify links
+		links := meta["links"].(map[string]interface{})
+		if links["current"] == "" || links["first"] == "" || links["last"] == "" {
+			t.Errorf("Expected pagination links to be populated, got %v", links)
 		}
 
 		// Most recent should be first (Payment)
@@ -62,6 +73,58 @@ func TestLedgerHistory(t *testing.T) {
 		wantAmount := decimal.NewFromFloat(-15000)
 		if !gotAmount.Equal(wantAmount) {
 			t.Errorf("Expected first amount %s, got %s", wantAmount, gotAmount)
+		}
+	})
+
+	t.Run("Get Transaction History with Pagination", func(t *testing.T) {
+		// page=1, per_page=1 -> should return 1 item (PAYMENT)
+		w := PerformRequest("GET", fmt.Sprintf("/api/v1/wallets/%s/transactions?page=1&per_page=1", walletID), "")
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("Expected status 200, got %d", w.Code)
+		}
+		var resp map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &resp)
+
+		data := resp["data"].([]interface{})
+		meta := resp["meta"].(map[string]interface{})
+
+		if len(data) != 1 {
+			t.Errorf("Expected 1 transaction, got %d", len(data))
+		}
+
+		if meta["total_items"].(float64) != 2 {
+			t.Errorf("Expected total_items 2, got %v", meta["total_items"])
+		}
+
+		// Verify links for paginated request
+		links := meta["links"].(map[string]interface{})
+		if links["next"] == "" {
+			t.Errorf("Expected next link to be populated for page 1 of 2")
+		}
+		if links["prev"] != nil {
+			t.Logf("Prev link: %v", links["prev"])
+		}
+		if meta["current_page"].(float64) != 1 {
+			t.Errorf("Expected current_page 1, got %v", meta["current_page"])
+		}
+		if meta["total_pages"].(float64) != 2 {
+			t.Errorf("Expected total_pages 2, got %v", meta["total_pages"])
+		}
+
+		// page=2, per_page=1 -> should return 1 item (TOPUP)
+		w2 := PerformRequest("GET", fmt.Sprintf("/api/v1/wallets/%s/transactions?page=2&per_page=1", walletID), "")
+		if w2.Code != http.StatusOK {
+			t.Fatalf("Expected status 200, got %d", w2.Code)
+		}
+		json.Unmarshal(w2.Body.Bytes(), &resp)
+		data2 := resp["data"].([]interface{})
+
+		if len(data2) != 1 {
+			t.Errorf("Expected 1 transaction for page 2, got %d", len(data2))
+		}
+		if data2[0].(map[string]interface{})["type"] != "TOPUP" {
+			t.Errorf("Expected second page to have TOPUP, got %v", data2[0].(map[string]interface{})["type"])
 		}
 	})
 

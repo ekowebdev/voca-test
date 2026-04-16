@@ -148,7 +148,20 @@ All API responses follow a consistent structure to ensure ease of integration.
 {
   "status": "success",
   "message": "Operation successful description",
-  "data": { ... } // Optional: contains the requested data
+  "data": { ... }, // Optional: contains the requested data
+  "meta": {
+    "current_page": 1,
+    "per_page": 10,
+    "total_items": 100,
+    "total_pages": 10,
+    "links": {
+      "current": "http://localhost:8080/api/v1/wallets/.../transactions?page=1&per_page=10",
+      "first": "http://localhost:8080/api/v1/wallets/.../transactions?page=1&per_page=10",
+      "last": "http://localhost:8080/api/v1/wallets/.../transactions?page=10&per_page=10",
+      "prev": "http://localhost:8080/api/v1/wallets/.../transactions?page=0&per_page=10",
+      "next": "http://localhost:8080/api/v1/wallets/.../transactions?page=2&per_page=10"
+    }
+  }
 }
 ```
 
@@ -174,7 +187,8 @@ All API responses follow a consistent structure to ensure ease of integration.
 - `POST /api/v1/wallets`: Create a wallet for a user.
   - Body: `{"user_id": "<uuid>", "currency": "USD"}`
 - `GET /api/v1/wallets/:id`: Get wallet balance and status.
-- `GET /api/v1/wallets/:id/transactions`: Get wallet transaction history.
+- `GET /api/v1/wallets/:id/transactions`: Get wallet transaction history (paginated).
+  - Query params: `page` (default: 1), `per_page` (default: 10)
 - `POST /api/v1/wallets/:id/topup`: Top-up money.
   - Body: `{"amount": 1000.50, "idempotency_key": "unique-uuid-1"}`
 - `POST /api/v1/wallets/:id/pay`: Spend money.

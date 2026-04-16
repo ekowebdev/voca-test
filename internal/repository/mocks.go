@@ -81,12 +81,17 @@ func (m *MockLedgerRepository) CreateLedgerEntry(ctx context.Context, tx pgx.Tx,
 	return args.Error(0)
 }
 
-func (m *MockLedgerRepository) GetLedgerByWalletID(ctx context.Context, walletID uuid.UUID) ([]models.LedgerEntry, error) {
-	args := m.Called(ctx, walletID)
+func (m *MockLedgerRepository) GetLedgerByWalletID(ctx context.Context, walletID uuid.UUID, limit, offset int) ([]models.LedgerEntry, error) {
+	args := m.Called(ctx, walletID, limit, offset)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]models.LedgerEntry), args.Error(1)
+}
+
+func (m *MockLedgerRepository) CountLedgerByWalletID(ctx context.Context, walletID uuid.UUID) (int64, error) {
+	args := m.Called(ctx, walletID)
+	return args.Get(0).(int64), args.Error(1)
 }
 
 // MockIdempotencyRepository is a mock implementation of IdempotencyRepository
