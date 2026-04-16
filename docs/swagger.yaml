@@ -1,0 +1,418 @@
+basePath: /api/v1
+definitions:
+  voca-test_internal_models.LedgerEntry:
+    properties:
+      amount:
+        type: number
+      balance_after:
+        type: number
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      reference_id:
+        type: string
+      type:
+        description: TOPUP, PAYMENT, TRANSFER_IN, TRANSFER_OUT
+        type: string
+      wallet_id:
+        type: string
+    type: object
+  voca-test_internal_models.PaymentRequest:
+    properties:
+      amount:
+        type: number
+      idempotency_key:
+        type: string
+    required:
+    - amount
+    - idempotency_key
+    type: object
+  voca-test_internal_models.TopUpRequest:
+    properties:
+      amount:
+        type: number
+      idempotency_key:
+        type: string
+    required:
+    - amount
+    - idempotency_key
+    type: object
+  voca-test_internal_models.TransferRequest:
+    properties:
+      amount:
+        type: number
+      from_wallet_id:
+        type: string
+      idempotency_key:
+        type: string
+      to_wallet_id:
+        type: string
+    required:
+    - amount
+    - from_wallet_id
+    - idempotency_key
+    - to_wallet_id
+    type: object
+  voca-test_internal_models.User:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  voca-test_internal_models.UserCreateRequest:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  voca-test_internal_models.Wallet:
+    properties:
+      balance:
+        type: number
+      created_at:
+        type: string
+      currency:
+        type: string
+      id:
+        type: string
+      status:
+        description: ACTIVE, SUSPENDED
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    required:
+    - currency
+    type: object
+  voca-test_internal_models.WalletCreateRequest:
+    properties:
+      currency:
+        type: string
+      user_id:
+        type: string
+    required:
+    - currency
+    - user_id
+    type: object
+  voca-test_internal_util.APIResponse:
+    properties:
+      data:
+        description: Actual payload for success
+      errors:
+        description: Specific error details (e.g., validation)
+      message:
+        description: General message
+        type: string
+      status:
+        description: '"success" or "error"'
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    name: API Support
+    url: https://github.com/voca-test
+  description: This is a simplified multi-currency E-Wallet backend system implemented
+    in Go using the Repository pattern, Gin framework, and PostgreSQL.
+  title: Multi-Currency E-Wallet API
+  version: "1.0"
+paths:
+  /users:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user in the system with the provided name.
+      parameters:
+      - description: User registration details
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/voca-test_internal_models.UserCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/voca-test_internal_util.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/voca-test_internal_models.User'
+              type: object
+        "400":
+          description: Invalid request body or validation error
+          schema:
+            $ref: '#/definitions/voca-test_internal_util.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/voca-test_internal_util.APIResponse'
+      summary: Create a new user
+      tags:
+      - Users
+  /wallets:
+    post:
+      consumes:
+      - application/json
+      description: Register a new wallet for a specific user with a chosen currency.
+      parameters:
+      - description: Wallet creation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/voca-test_internal_models.WalletCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Wallet created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/voca-test_internal_util.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/voca-test_internal_models.Wallet'
+              type: object
+        "400":
+          description: Invalid request body or validation error
+          schema:
+            $ref: '#/definitions/voca-test_internal_util.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/voca-test_internal_util.APIResponse'
+      summary: Create a wallet for a user
+      tags:
+      - Wallets
+  /wallets/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve the current balance and status of a specific wallet.
+      parameters:
+      - description: Wallet UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Wallet retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/voca-test_internal_util.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/voca-test_internal_models.Wallet'
+              type: object
+        "400":
+          description: Invalid wallet ID
+          schema:
+            $ref: '#/definitions/voca-test_internal_util.APIResponse'
+        "404":
+          description: Wallet not found
+          schema:
+            $ref: '#/definitions/voca-test_internal_util.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/voca-test_internal_util.APIResponse'
+      summary: Get wallet details
+      tags:
+      - Wallets
+  /wallets/{id}/pay:
+    post:
+      consumes:
+      - application/json
+      description: Deduct funds from a wallet for a payment. Requires an idempotency
+        key.
+      parameters:
+      - description: Wallet UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Payment details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/voca-test_internal_models.PaymentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Payment successful
+          schema:
+            allOf:
+            - $ref: '#/definitions/voca-test_internal_util.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/voca-test_internal_models.Wallet'
+              type: object
+        "400":
+          description: Invalid request body, insufficient balance, or wallet ID
+          schema:
+            $ref: '#/definitions/voca-test_internal_util.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/voca-test_internal_util.APIResponse'
+      summary: Spend money from a wallet
+      tags:
+      - Wallets
+  /wallets/{id}/suspend:
+    post:
+      consumes:
+      - application/json
+      description: Change a wallet status to SUSPENDED. Suspended wallets cannot perform
+        transactions.
+      parameters:
+      - description: Wallet UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Wallet suspended successfully
+          schema:
+            $ref: '#/definitions/voca-test_internal_util.APIResponse'
+        "400":
+          description: Invalid wallet ID
+          schema:
+            $ref: '#/definitions/voca-test_internal_util.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/voca-test_internal_util.APIResponse'
+      summary: Suspend a wallet
+      tags:
+      - Wallets
+  /wallets/{id}/topup:
+    post:
+      consumes:
+      - application/json
+      description: Add funds to a wallet. Requires an idempotency key to prevent duplicate
+        transactions.
+      parameters:
+      - description: Wallet UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Top-up details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/voca-test_internal_models.TopUpRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Top-up successful
+          schema:
+            allOf:
+            - $ref: '#/definitions/voca-test_internal_util.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/voca-test_internal_models.Wallet'
+              type: object
+        "400":
+          description: Invalid request body or wallet ID
+          schema:
+            $ref: '#/definitions/voca-test_internal_util.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/voca-test_internal_util.APIResponse'
+      summary: Top-up money to a wallet
+      tags:
+      - Wallets
+  /wallets/{id}/transactions:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of all transactions (ledger entries) for a specific
+        wallet, sorted by date.
+      parameters:
+      - description: Wallet UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Transaction history retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/voca-test_internal_util.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/voca-test_internal_models.LedgerEntry'
+                  type: array
+              type: object
+        "400":
+          description: Invalid wallet ID
+          schema:
+            $ref: '#/definitions/voca-test_internal_util.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/voca-test_internal_util.APIResponse'
+      summary: Get wallet transaction history
+      tags:
+      - Wallets
+  /wallets/transfer:
+    post:
+      consumes:
+      - application/json
+      description: Transfer funds from one wallet to another. Both wallets must use
+        the same currency. Requires an idempotency key.
+      parameters:
+      - description: Transfer details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/voca-test_internal_models.TransferRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Transfer successful
+          schema:
+            $ref: '#/definitions/voca-test_internal_util.APIResponse'
+        "400":
+          description: Invalid request, currency mismatch, or insufficient balance
+          schema:
+            $ref: '#/definitions/voca-test_internal_util.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/voca-test_internal_util.APIResponse'
+      summary: Move money between same-currency wallets
+      tags:
+      - Wallets
+swagger: "2.0"
