@@ -63,8 +63,18 @@ func main() {
 	userHandler := handler.NewUserHandler(userService)
 	walletHandler := handler.NewWalletHandler(walletService)
 	ledgerHandler := handler.NewLedgerHandler(ledgerService)
+	workerService := service.NewWorkerService(idempotencyRepo)
 
-	// 7. Setup Router & Routes
+	// 7. Start Background Workers
+	workerCtx, workerCancel := context.WithCancel(context.Background())
+	defer workerCancel()
+	go workerService.StartCleanupWorker(
+		workerCtx,
+		time.Duration(cfg.IdempotencyInterval)*time.Hour,
+		time.Duration(cfg.IdempotencyRetention)*time.Hour,
+	)
+
+	// 8. Setup Router & Routes
 	if cfg.AppEnv == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}

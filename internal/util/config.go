@@ -12,8 +12,10 @@ type Config struct {
 	AppEnv  string
 	Port    string
 	DBConn  string
-	DBPool  DBPoolConfig
-	Origins []string
+	DBPool               DBPoolConfig
+	Origins              []string
+	IdempotencyRetention int // in hours
+	IdempotencyInterval  int // in hours
 }
 
 type DBPoolConfig struct {
@@ -39,7 +41,9 @@ func LoadConfig(filenames ...string) *Config {
 			MaxConnLifetime: getEnvAsInt("DB_MAX_CONN_LIFETIME", 30),
 			MaxConnIdleTime: getEnvAsInt("DB_MAX_CONN_IDLE_TIME", 5),
 		},
-		Origins: []string{"*"}, // Default to all origins, should be configured in prod
+		Origins:              []string{"*"},
+		IdempotencyRetention: getEnvAsInt("IDEMPOTENCY_RETENTION_HOURS", 24),
+		IdempotencyInterval:  getEnvAsInt("IDEMPOTENCY_CLEANUP_INTERVAL_HOURS", 1),
 	}
 
 	return config

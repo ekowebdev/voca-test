@@ -28,9 +28,10 @@ This is a simplified multi-currency E-Wallet backend system implemented in Go us
 3. **Concurrency Control**: 
    - Uses **Pessimistic Locking** (`SELECT ... FOR UPDATE`) at the row level. When a wallet balance is being updated, other concurrent requests for the *same* wallet must wait, preventing race conditions.
    - For **Transfers**, a deterministic locking order (locking smaller UUID first) is used to prevent deadlocks.
-4. **Idempotency**: All write operations (Top-up, Payment, Transfer) require an `idempotency_key` to safely handle duplicate requests from the client.
-5. **Atomicity**: Multi-wallet operations (like transfers) are executed within a single SQL transaction. If any part of the operation fails, all changes are rolled back.
-6. **Rounding Logic**: All amounts are automatically rounded to 2 decimal places (e.g., `12.3456` becomes `12.35`).
+4. **Advanced Idempotency**: All financial operations use a transparent idempotency mechanism that stores and returns the original response on retries, ensuring consistency and ease of client integration.
+5. **Automated Maintenance**: A background cleanup worker proactively purges old idempotency keys after a 24-hour retention period.
+6. **Atomicity**: Multi-wallet operations (like transfers) are executed within a single SQL transaction. If any part of the operation fails, all changes are rolled back.
+7. **Rounding Logic**: All amounts are automatically rounded to 2 decimal places (e.g., `12.3456` becomes `12.35`).
 
 ## My assumptions
 
@@ -47,7 +48,8 @@ Below are the core technical and business assumptions made during the developmen
 
 3.  **Idempotency Responsibility**:
     - The system assumes **clients are responsible** for generating and storing unique `idempotency_key` (UUID v4) for every balance-altering request.
-    - We assume a retention period for idempotency keys is handled at the database level (currently persisted indefinitely in the `ledger` table).
+    - Following best practices, the system stores successful responses for 24 hours to return consistent results on retries.
+    - A background maintenance worker automatically prunes keys older than 24 hours.
 
 4.  **Trust & Security**:
     - We assume the application runs in a **trusted internal network** or behind an API Gateway/Load Balancer that handles SSL termination and Basic/token-based Authentication.

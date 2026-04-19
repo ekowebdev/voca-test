@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -94,6 +96,17 @@ func (s *WalletService) TopUp(ctx context.Context, walletID uuid.UUID, amount de
 	defer tx.Rollback(ctx)
 
 	// 2. Idempotency Check
+	cachedCode, cachedBody, found, err := s.iRepo.GetResponse(ctx, idempotencyKey)
+	if err == nil && found {
+		if cachedCode >= 200 && cachedCode < 300 {
+			var cachedWallet models.Wallet
+			if err := json.Unmarshal([]byte(cachedBody), &cachedWallet); err == nil {
+				return &cachedWallet, nil
+			}
+		}
+		return nil, fmt.Errorf("duplicate request: idempotency key %s already used", idempotencyKey)
+	}
+
 	isDup, err := s.iRepo.CheckAndCreateKey(ctx, tx, idempotencyKey)
 	if err != nil {
 		return nil, err
@@ -132,12 +145,18 @@ func (s *WalletService) TopUp(ctx context.Context, walletID uuid.UUID, amount de
 		return nil, err
 	}
 
+	// 6. Save Response for Idempotency
+	wallet.Balance = newBalance
+	respBody, _ := json.Marshal(wallet)
+	if err := s.iRepo.SaveResponse(ctx, tx, idempotencyKey, http.StatusOK, string(respBody)); err != nil {
+		return nil, err
+	}
+
 	// Commit
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
 
-	wallet.Balance = newBalance
 	return wallet, nil
 }
 
@@ -160,6 +179,17 @@ func (s *WalletService) Payment(ctx context.Context, walletID uuid.UUID, amount 
 	defer tx.Rollback(ctx)
 
 	// Idempotency
+	cachedCode, cachedBody, found, err := s.iRepo.GetResponse(ctx, idempotencyKey)
+	if err == nil && found {
+		if cachedCode >= 200 && cachedCode < 300 {
+			var cachedWallet models.Wallet
+			if err := json.Unmarshal([]byte(cachedBody), &cachedWallet); err == nil {
+				return &cachedWallet, nil
+			}
+		}
+		return nil, fmt.Errorf("duplicate request")
+	}
+
 	isDup, err := s.iRepo.CheckAndCreateKey(ctx, tx, idempotencyKey)
 	if err != nil {
 		return nil, err
@@ -203,11 +233,17 @@ func (s *WalletService) Payment(ctx context.Context, walletID uuid.UUID, amount 
 		return nil, err
 	}
 
+	// Save Response for Idempotency
+	wallet.Balance = newBalance
+	respBody, _ := json.Marshal(wallet)
+	if err := s.iRepo.SaveResponse(ctx, tx, idempotencyKey, http.StatusOK, string(respBody)); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
 
-	wallet.Balance = newBalance
 	return wallet, nil
 }
 
@@ -229,6 +265,14 @@ func (s *WalletService) Transfer(ctx context.Context, fromID, toID uuid.UUID, am
 	defer tx.Rollback(ctx)
 
 	// Idempotency
+	cachedCode, _, found, err := s.iRepo.GetResponse(ctx, idempotencyKey)
+	if err == nil && found {
+		if cachedCode >= 200 && cachedCode < 300 {
+			return nil // Already successful
+		}
+		return fmt.Errorf("duplicate request")
+	}
+
 	isDup, err := s.iRepo.CheckAndCreateKey(ctx, tx, idempotencyKey)
 	if err != nil {
 		return err
@@ -313,6 +357,11 @@ func (s *WalletService) Transfer(ctx context.Context, fromID, toID uuid.UUID, am
 		CreatedAt:    time.Now(),
 	}
 	if err := s.lRepo.CreateLedgerEntry(ctx, tx, entryTo); err != nil {
+		return err
+	}
+
+	// Save Response for Idempotency
+	if err := s.iRepo.SaveResponse(ctx, tx, idempotencyKey, http.StatusOK, "OK"); err != nil {
 		return err
 	}
 
