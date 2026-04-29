@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,12 +18,15 @@ import (
 	"voca-test/internal/util"
 )
 
+const walletLockShards = 64
+
 type WalletService struct {
 	userRepo repository.UserRepository
 	wRepo    repository.WalletRepository
 	lRepo    repository.LedgerRepository
 	iRepo    repository.IdempotencyRepository
 	db       *pgxpool.Pool
+	mu       [walletLockShards]sync.Mutex
 }
 
 func NewWalletService(
@@ -41,8 +45,22 @@ func NewWalletService(
 	}
 }
 
+// getShard returns the shard index for a given UUID
+func (s *WalletService) getShard(id uuid.UUID) int {
+	// Simple hash by using the first 8 bytes of UUID
+	var sum uint64
+	for i := 0; i < 8; i++ {
+		sum = (sum << 8) | uint64(id[i])
+	}
+	return int(sum % uint64(walletLockShards))
+}
+
 // CreateWallet handles creating a new wallet for a user
 func (s *WalletService) CreateWallet(ctx context.Context, userID uuid.UUID, currency string) (*models.Wallet, error) {
+	shardIdx := s.getShard(userID)
+	s.mu[shardIdx].Lock()
+	defer s.mu[shardIdx].Unlock()
+
 	// Normalize currency to uppercase
 	currency = strings.ToUpper(strings.TrimSpace(currency))
 
@@ -81,6 +99,10 @@ func (s *WalletService) CreateWallet(ctx context.Context, userID uuid.UUID, curr
 
 // TopUp handles adding money to a wallet
 func (s *WalletService) TopUp(ctx context.Context, walletID uuid.UUID, amount decimal.Decimal, idempotencyKey string) (*models.Wallet, error) {
+	shardIdx := s.getShard(walletID)
+	s.mu[shardIdx].Lock()
+	defer s.mu[shardIdx].Unlock()
+
 	// 1. Minimum unit check and rounding
 	// Round to 2 decimal places as per requirement
 	roundedAmount := amount.Round(2)
@@ -162,6 +184,10 @@ func (s *WalletService) TopUp(ctx context.Context, walletID uuid.UUID, amount de
 
 // Payment handles spending money from a wallet
 func (s *WalletService) Payment(ctx context.Context, walletID uuid.UUID, amount decimal.Decimal, idempotencyKey string) (*models.Wallet, error) {
+	shardIdx := s.getShard(walletID)
+	s.mu[shardIdx].Lock()
+	defer s.mu[shardIdx].Unlock()
+
 	roundedAmount := amount.Round(2)
 	if roundedAmount.LessThanOrEqual(decimal.Zero) {
 		return nil, errors.New("payment amount must be positive")
@@ -249,6 +275,25 @@ func (s *WalletService) Payment(ctx context.Context, walletID uuid.UUID, amount 
 
 // Transfer handles moving money between wallets of the SAME currency
 func (s *WalletService) Transfer(ctx context.Context, fromID, toID uuid.UUID, amount decimal.Decimal, idempotencyKey string) error {
+	idxFrom := s.getShard(fromID)
+	idxTo := s.getShard(toID)
+
+	// Consistent locking order to prevent deadlocks
+	if idxFrom == idxTo {
+		s.mu[idxFrom].Lock()
+		defer s.mu[idxFrom].Unlock()
+	} else if idxFrom < idxTo {
+		s.mu[idxFrom].Lock()
+		s.mu[idxTo].Lock()
+		defer s.mu[idxTo].Unlock()
+		defer s.mu[idxFrom].Unlock()
+	} else {
+		s.mu[idxTo].Lock()
+		s.mu[idxFrom].Lock()
+		defer s.mu[idxFrom].Unlock()
+		defer s.mu[idxTo].Unlock()
+	}
+
 	roundedAmount := amount.Round(2)
 	if roundedAmount.LessThanOrEqual(decimal.Zero) {
 		return errors.New("transfer amount must be positive")
@@ -373,5 +418,9 @@ func (s *WalletService) GetWallet(ctx context.Context, id uuid.UUID) (*models.Wa
 }
 
 func (s *WalletService) SuspendWallet(ctx context.Context, id uuid.UUID) error {
+	shardIdx := s.getShard(id)
+	s.mu[shardIdx].Lock()
+	defer s.mu[shardIdx].Unlock()
+
 	return s.wRepo.UpdateWalletStatus(ctx, id, models.StatusSuspended)
 }

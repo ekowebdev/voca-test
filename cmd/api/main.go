@@ -17,13 +17,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"voca-test/internal/db"
 	"voca-test/internal/handler"
 	"voca-test/internal/repository"
 	"voca-test/internal/routes"
 	"voca-test/internal/service"
 	"voca-test/internal/util"
+
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -83,7 +84,7 @@ func main() {
 	r := gin.New()
 	routes.SetupRoutes(r, cfg, userHandler, walletHandler, ledgerHandler)
 
-	// 8. Graceful Shutdown
+	// 9. Graceful Shutdown
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,
 		Handler: r,

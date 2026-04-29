@@ -26,8 +26,9 @@ This is a simplified multi-currency E-Wallet backend system implemented in Go us
 1. **Ledger-Based Audit**: Every single wallet balance change (Top-up, Payment, Transfer) is recorded in an append-only `ledger` table before the balance is updated.
 2. **Safe Decimal Arithmetic**: All financial amounts are handled using the `decimal.Decimal` library to avoid floating-point precision errors (e.g., `0.1 + 0.2 != 0.3`).
 3. **Concurrency Control**: 
-   - Uses **Pessimistic Locking** (`SELECT ... FOR UPDATE`) at the row level. When a wallet balance is being updated, other concurrent requests for the *same* wallet must wait, preventing race conditions.
+   - Uses **Pessimistic Locking** (`SELECT ... FOR UPDATE`) at the row level. When a wallet balance is being updated, other concurrent requests for the *same* wallet must wait, preventing race conditions at the database level.
    - For **Transfers**, a deterministic locking order (locking smaller UUID first) is used to prevent deadlocks.
+   - **Application-Level Locking (Sharded Mutex)**: To handle race conditions before reaching the database, the system implements a high-performance **Sharded Mutex (Keyed Mutex)**. It uses 64 mutex shards to ensure that concurrent operations on different wallets are not blocked, while operations on the same wallet are serialized at the code level.
 4. **Advanced Idempotency**: All financial operations use a transparent idempotency mechanism that stores and returns the original response on retries, ensuring consistency and ease of client integration.
 5. **Automated Maintenance**: A background cleanup worker proactively purges old idempotency keys after a 24-hour retention period.
 6. **Atomicity**: Multi-wallet operations (like transfers) are executed within a single SQL transaction. If any part of the operation fails, all changes are rolled back.
@@ -43,7 +44,7 @@ Below are the core technical and business assumptions made during the developmen
     - The system assumes that any rounding required (e.g., from complex calculations) should follow the "Half Up" rule to 2 decimal places.
 
 2.  **Concurrency & Race Conditions**:
-    - We assume row-level **Pessimistic Locking** (`SELECT ... FOR UPDATE`) is the most reliable way to prevent "Double Spending" at the current scale.
+    - We assume a hybrid locking strategy: **Pessimistic Locking** (`SELECT ... FOR UPDATE`) in PostgreSQL and **Sharded Mutex** at the application layer provide the most robust defense against "Double Spending".
     - We assume that the database connection pool is configured to handle the expected peak concurrent transaction volume.
 
 3.  **Idempotency Responsibility**:
